@@ -7366,7 +7366,7 @@ void objc_disposeClassPair(Class cls)
 id 
 objc_constructInstance(Class cls, void *bytes)
 {
-    printf("objc-alloc-step %s\tobjc_constructInstance\n", class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n", class_getName(cls), __func__);
     if (!cls  ||  !bytes) return nil;
 
     id obj = (id)bytes;
@@ -7405,7 +7405,7 @@ _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
                               size_t *outAllocatedSize = nil)
 {
     ASSERT(cls->isRealized());
-    printf("objc-alloc-step %s\t_class_createInstanceFromZone\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
     // Read class's info bits all at once for performance
     bool hasCxxCtor = cxxConstruct && cls->hasCxxCtor();
     bool hasCxxDtor = cls->hasCxxDtor();
@@ -7467,7 +7467,7 @@ _objc_rootAllocWithZone(Class cls, malloc_zone_t *zone __unused)
 {
     // allocWithZone under __OBJC2__ ignores the zone parameter
     // runtime-analysis-alloc过程：3._objc_rootAllocWithZone内部调用_class_createInstanceFromZone
-    printf("objc-alloc-step %s\t_objc_rootAllocWithZone\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
     return _class_createInstanceFromZone(cls, 0, nil,
                                          OBJECT_CONSTRUCT_CALL_BADALLOC);
 }
@@ -7569,7 +7569,7 @@ object_copyFromZone(id oldObj, size_t extraBytes, void *zone)
 **********************************************************************/
 void *objc_destructInstance(id obj) 
 {
-    printf("objc-dealloc-step %s\tobjc_destructInstance\n",class_getName(obj->ISA()));
+    printf("objc-dealloc-step %s\t%s\n",class_getName(obj->ISA()), __func__);
     if (obj) {
         // Read all of the flags at once for performance.
         bool cxx = obj->hasCxxDtor();
@@ -7594,7 +7594,7 @@ id
 object_dispose(id obj)
 {
     if (!obj) return nil;
-    printf("objc-dealloc-step %s\tobject_dispose\n",class_getName(obj->ISA()));
+    printf("objc-dealloc-step %s\t%s\n",class_getName(obj->ISA()), __func__);
     objc_destructInstance(obj);    
     free(obj);
 

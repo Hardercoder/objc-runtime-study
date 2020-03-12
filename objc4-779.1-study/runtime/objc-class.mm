@@ -437,7 +437,7 @@ Ivar object_getInstanceVariable(id obj, const char *name, void **value)
 static void object_cxxDestructFromClass(id obj, Class cls)
 {
     void (*dtor)(id);
-    printf("objc-dealloc-step %s\t%s\tobject_cxxDestructFromClass，从当前类递归往上，调用.cxx_destruct方法\n",class_getName(obj->ISA()),class_getName(cls));
+    printf("objc-dealloc-step %s\t%s\t%s，从当前类递归往上，调用.cxx_destruct方法\n",class_getName(obj->ISA()),class_getName(cls), __func__);
     // Call cls's dtor first, then superclasses's dtors.
 
     for ( ; cls; cls = cls->superclass) {
@@ -462,7 +462,7 @@ static void object_cxxDestructFromClass(id obj, Class cls)
 **********************************************************************/
 void object_cxxDestruct(id obj)
 {
-    printf("objc-dealloc-step %s\tobject_cxxDestruct\n",class_getName(obj->ISA()));
+    printf("objc-dealloc-step %s\t%s\n",class_getName(obj->ISA()), __func__);
     if (!obj) return;
     if (obj->isTaggedPointer()) return;
     object_cxxDestructFromClass(obj, obj->ISA());
@@ -487,7 +487,7 @@ void object_cxxDestruct(id obj)
 id 
 object_cxxConstructFromClass(id obj, Class cls, int flags)
 {
-    printf("objc-alloc-step %s %s\tobject_cxxConstructFromClass递归向上，先调用父类的，再调用子类的\n",class_getName(obj->ISA()),class_getName(cls));
+    printf("objc-alloc-step %s %s\t%s递归向上，先调用父类的，再调用子类的\n",class_getName(obj->ISA()),class_getName(cls), __func__);
     ASSERT(cls->hasCxxCtor());  // required for performance, not correctness
 
     id (*ctor)(id);

@@ -646,12 +646,14 @@ void objc_setEnumerationMutationHandler(void (*handler)(id)) {
 id
 objc_getAssociatedObject(id object, const void *key)
 {
+    printf("objc-associateObject-step %s\t%s\n",class_getName(object->ISA()), __func__);
     return _object_get_associative_reference(object, key);
 }
 
 static void
 _base_objc_setAssociatedObject(id object, const void *key, id value, objc_AssociationPolicy policy)
 {
+    printf("objc-associateObject-step %s\t%s\n",class_getName(object->ISA()),__func__);
   _object_set_associative_reference(object, key, value, policy);
 }
 
@@ -660,12 +662,14 @@ static ChainedHookFunction<objc_hook_setAssociatedObject> SetAssocHook{_base_obj
 void
 objc_setHook_setAssociatedObject(objc_hook_setAssociatedObject _Nonnull newValue,
                                  objc_hook_setAssociatedObject _Nullable * _Nonnull outOldValue) {
+    printf("objc-associateObject-step %s\n", __func__);
     SetAssocHook.set(newValue, outOldValue);
 }
 
 void
 objc_setAssociatedObject(id object, const void *key, id value, objc_AssociationPolicy policy)
 {
+    printf("objc-associateObject-step %s\t%s\n",class_getName(object->ISA()),__func__);
     SetAssocHook.get()(object, key, value, policy);
 }
 

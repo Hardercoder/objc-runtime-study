@@ -1112,3 +1112,6 @@ static uint32_t ptr_hash(uint32_t key)
 
 #endif /* _OBJC_PRIVATE_H_ */
 
+//static inline void printMethodInvoke(const char *preStr,const char *obj,const char *method,const char * message) {
+//    printf("%s\t%s\t%s\n",preStr,obj,message);
+//}

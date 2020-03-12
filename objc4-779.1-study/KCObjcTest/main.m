@@ -8,6 +8,12 @@
 #import <Foundation/Foundation.h>
 #import "TestObj+Categor.h"
 static TestObj *myObj = nil;
+/*
+ objc-alloc-step  oc对象alloc的过程
+ objc-dealloc-step oc对象dealloc的过程
+ objc-associateObject-step 关联对象过程
+ objc-weakpointer-step weak引用过程
+ */
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
@@ -15,6 +21,7 @@ int main(int argc, const char * argv[]) {
             printf("调用[[TestObj alloc] init]\n");
             TestObj *obj = [[TestObj alloc] init];
             obj.catName = @"catName";
+            NSLog(@"%@",obj.catName);
             __weak TestObj *weakObj = obj;
             NSLog(@"%@",weakObj);
         });

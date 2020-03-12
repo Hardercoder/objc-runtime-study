@@ -270,6 +270,7 @@ template <HaveOld haveOld, HaveNew haveNew,
 static id 
 storeWeak(id *location, objc_object *newObj)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     ASSERT(haveOld  ||  haveNew);
     if (!haveNew) ASSERT(newObj == nil);
 
@@ -366,6 +367,7 @@ storeWeak(id *location, objc_object *newObj)
 id
 objc_storeWeak(id *location, id newObj)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     return storeWeak<DoHaveOld, DoHaveNew, DoCrashIfDeallocating>
         (location, (objc_object *)newObj);
 }
@@ -384,6 +386,7 @@ objc_storeWeak(id *location, id newObj)
 id
 objc_storeWeakOrNil(id *location, id newObj)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     return storeWeak<DoHaveOld, DoHaveNew, DontCrashIfDeallocating>
         (location, (objc_object *)newObj);
 }
@@ -408,11 +411,11 @@ objc_storeWeakOrNil(id *location, id newObj)
 id
 objc_initWeak(id *location, id newObj)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     if (!newObj) {
         *location = nil;
         return nil;
     }
-
     return storeWeak<DontHaveOld, DoHaveNew, DoCrashIfDeallocating>
         (location, (objc_object*)newObj);
 }
@@ -420,6 +423,7 @@ objc_initWeak(id *location, id newObj)
 id
 objc_initWeakOrNil(id *location, id newObj)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     if (!newObj) {
         *location = nil;
         return nil;
@@ -444,6 +448,7 @@ objc_initWeakOrNil(id *location, id newObj)
 void
 objc_destroyWeak(id *location)
 {
+//    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
     (void)storeWeak<DoHaveOld, DontHaveNew, DontCrashIfDeallocating>
         (location, nil);
 }
@@ -462,6 +467,7 @@ objc_destroyWeak(id *location)
 id
 objc_loadWeakRetained(id *location)
 {
+//    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
     id obj;
     id result;
     Class cls;
@@ -530,6 +536,7 @@ objc_loadWeakRetained(id *location)
 id
 objc_loadWeak(id *location)
 {
+//    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
     if (!*location) return nil;
     return objc_autorelease(objc_loadWeakRetained(location));
 }
@@ -552,6 +559,7 @@ objc_loadWeak(id *location)
 void
 objc_copyWeak(id *dst, id *src)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*dst)->ISA()),class_getName((*src)->ISA()), __func__);
     id obj = objc_loadWeakRetained(src);
     objc_initWeak(dst, obj);
     objc_release(obj);
@@ -569,6 +577,7 @@ objc_copyWeak(id *dst, id *src)
 void
 objc_moveWeak(id *dst, id *src)
 {
+//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*dst)->ISA()),class_getName((*src)->ISA()), __func__);
     objc_copyWeak(dst, src);
     objc_destroyWeak(src);
     *src = nil;
@@ -1217,7 +1226,7 @@ NEVER_INLINE void
 objc_object::clearDeallocating_slow()
 {
     ASSERT(isa.nonpointer  &&  (isa.weakly_referenced || isa.has_sidetable_rc));
-    printf("objc-dealloc-step %s\tclearDeallocating_slow 移除weak和ref table\n",class_getName(this->ISA()));
+    printf("objc-dealloc-step %s\t%s 移除weak和ref table\n",class_getName(this->ISA()),__func__);
     SideTable& table = SideTables()[this];
     table.lock();
     if (isa.weakly_referenced) {
@@ -1543,7 +1552,7 @@ objc_object::sidetable_release(bool performDealloc)
     }
     table.unlock();
     if (do_dealloc  &&  performDealloc) {
-        printf("objc-dealloc-step %s\tsidetable_release:objc_msgSend(dealloc)\n",class_getName(this->ISA()));
+        printf("objc-dealloc-step %s\t%sobjc_msgSend(dealloc)\n",class_getName(this->ISA()),__func__);
         ((void(*)(objc_object *, SEL))objc_msgSend)(this, @selector(dealloc));
     }
     return do_dealloc;
@@ -1553,7 +1562,7 @@ objc_object::sidetable_release(bool performDealloc)
 void 
 objc_object::sidetable_clearDeallocating()
 {
-    printf("objc-dealloc-step %s\tsidetable_clearDeallocating 移除weak和ref table\n",class_getName(this->ISA()));
+    printf("objc-dealloc-step %s\t%s 移除weak和ref table\n",class_getName(this->ISA()), __func__);
     SideTable& table = SideTables()[this];
 
     // clear any weak table items
@@ -1699,7 +1708,7 @@ _objc_rootRelease(id obj)
 static ALWAYS_INLINE id
 callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 {
-    printf("objc-alloc-step %s\tcallAlloc\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
 #if __OBJC2__
     if (slowpath(checkNil && !cls)) return nil;
     if (fastpath(!cls->ISA()->hasCustomAWZ())) {
@@ -1723,7 +1732,7 @@ callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 id
 _objc_rootAlloc(Class cls)
 {
-    printf("objc-alloc-step %s\t_objc_rootAlloc\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
     return callAlloc(cls, false/*checkNil*/, true/*allocWithZone*/);
 }
 
@@ -1732,7 +1741,7 @@ id
 objc_alloc(Class cls)
 {
     // runtime-analysis-alloc过程：1.调用类方法alloc时，会调用底层callAlloc,有三个参数，类，是否检查nil，是否要调用allocWithZone
-    printf("objc-alloc-step %s\tobjc_alloc:\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
     return callAlloc(cls, true/*checkNil*/, false/*allocWithZone*/);
 }
 
@@ -1823,7 +1832,7 @@ void
 _objc_rootDealloc(id obj)
 {
     ASSERT(obj);
-    printf("objc-dealloc-step %s\t_objc_rootDealloc\n",class_getName(obj->ISA()));
+    printf("objc-dealloc-step %s\t%s\n",class_getName(obj->ISA()),__func__);
     obj->rootDealloc();
 }
 
@@ -2325,7 +2334,7 @@ __attribute__((objc_nonlazy_class))
 }
 
 + (id)alloc {
-    printf("objc-alloc-step %s\t+alloc\n",class_getName(self));
+    printf("objc-alloc-step %s\t%s\n",class_getName(self), __func__);
     return _objc_rootAlloc(self);
 }
 
@@ -2351,7 +2360,7 @@ __attribute__((objc_nonlazy_class))
 
 // Replaced by NSZombies
 - (void)dealloc {
-    printf("objc-dealloc-step %s\t-dealloc\n",class_getName([self class]));
+    printf("objc-dealloc-step %s\t%s\n",class_getName([self class]), __func__);
     _objc_rootDealloc(self);
 }
 

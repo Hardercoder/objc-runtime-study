@@ -216,7 +216,7 @@ objc_object::initInstanceIsa(Class cls, bool hasCxxDtor)
 {
     ASSERT(!cls->instancesRequireRawIsa());
     ASSERT(hasCxxDtor == cls->hasCxxDtor());
-    printf("objc-alloc-step %s\tinitInstanceIsa\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
     initIsa(cls, true, hasCxxDtor);
 }
 
@@ -224,7 +224,7 @@ inline void
 objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor) 
 { 
     ASSERT(!isTaggedPointer()); 
-    printf("objc-alloc-step %s\tinitIsa\n",class_getName(cls));
+    printf("objc-alloc-step %s\t%s\n",class_getName(cls), __func__);
     if (!nonpointer) {
         isa = isa_t((uintptr_t)cls);
     } else {
@@ -417,7 +417,7 @@ objc_object::rootIsDeallocating()
 inline void 
 objc_object::clearDeallocating()
 {
-    printf("objc-dealloc-step %s\tclearDeallocating\n",class_getName(this->ISA()));
+    printf("objc-dealloc-step %s\t%s\n",class_getName(this->ISA()),__func__);
     if (slowpath(!isa.nonpointer)) {
         // Slow path for raw pointer isa.
         sidetable_clearDeallocating();
@@ -433,7 +433,7 @@ objc_object::clearDeallocating()
 
 inline void
 objc_object::rootDealloc()
-{   printf("objc-dealloc-step %s\trootDealloc\n",class_getName(this->ISA()));
+{   printf("objc-dealloc-step %s\t%s\n",class_getName(this->ISA()),__func__);
     if (isTaggedPointer()) return;  // fixme necessary?
 
     if (fastpath(isa.nonpointer  &&  
@@ -443,14 +443,14 @@ objc_object::rootDealloc()
                  !isa.has_sidetable_rc))
     {
         assert(!sidetable_present());
-        printf("objc-dealloc-step %s\trootDealloc->free\n",class_getName(this->ISA()));
+        printf("objc-dealloc-step %s\t%s->free\n",class_getName(this->ISA()),__func__);
         free(this);
     } 
     else {
         object_dispose((id)this);
     }
+    
 }
-
 
 // Equivalent to calling [this retain], with shortcuts if there is no override
 inline id 

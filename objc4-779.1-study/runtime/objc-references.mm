@@ -136,9 +136,16 @@ _objc_associations_init()
 id
 _object_get_associative_reference(id object, const void *key)
 {
+    printf("objc-associateObject-step %s\t%s\n",class_getName(object->ISA()), __func__);
     ObjcAssociation association{};
 
     {
+        /*
+        获取全局的AssociationsManager，它管理了一个AssociationsHashMap
+        通过disguised(object)为key去获取value类型为ObjectAssociationMap的值
+        之后在这个对象里通过我们传进来的key去获取value类型为ObjectAssociation的值，它包含策略和值
+        之后会返回这个值，或者返回一个ObjcAssociation的空map，调用它的autoreleaseReturnedValue
+        */
         AssociationsManager manager;
         AssociationsHashMap &associations(manager.get());
         AssociationsHashMap::iterator i = associations.find((objc_object *)object);
@@ -158,6 +165,7 @@ _object_get_associative_reference(id object, const void *key)
 void
 _object_set_associative_reference(id object, const void *key, id value, uintptr_t policy)
 {
+    printf("objc-associateObject-step %s\t%s\n",class_getName(object->ISA()), __func__);
     // This code used to work when nil was passed for object and key. Some code
     // probably relies on that to not crash. Check and handle it explicitly.
     // rdar://problem/44094390
@@ -175,11 +183,17 @@ _object_set_associative_reference(id object, const void *key, id value, uintptr_
     {
         AssociationsManager manager;
         AssociationsHashMap &associations(manager.get());
-
+        /*
+         获取全局的AssociationsManager，它管理了一个AssociationsHashMap
+         通过disguised(object)为key去获取value类型为ObjectAssociationMap的值
+         之后在这个对象里通过我们传进来的key去获取value类型为ObjectAssociation的值，它包含策略和值
+         之后会替换或将它添加到ObjectAssociationMap中
+         */
         if (value) {
             auto refs_result = associations.try_emplace(disguised, ObjectAssociationMap{});
             if (refs_result.second) {
                 /* it's the first association we make */
+                // 设置对象的isa中的标志位hasAssoc
                 object->setHasAssociatedObjects();
             }
 
@@ -217,7 +231,7 @@ _object_set_associative_reference(id object, const void *key, id value, uintptr_
 void
 _object_remove_assocations(id object)
 {
-    printf("objc-dealloc-step %s\t_object_remove_assocations\n",class_getName(object->ISA()));
+    printf("objc-dealloc-step %s\t%s\n",class_getName(object->ISA()), __func__);
     ObjectAssociationMap refs{};
 
     {
