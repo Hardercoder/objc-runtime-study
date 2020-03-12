@@ -35,6 +35,7 @@
 		18CF4E53241A24ED006F6067 /* TestObj.m in Sources */ = {isa = PBXBuildFile; fileRef = 18CF4E4D241A24ED006F6067 /* TestObj.m */; };
 		18CF4E54241A24ED006F6067 /* NSObject+DLIntrospection.m in Sources */ = {isa = PBXBuildFile; fileRef = 18CF4E4E241A24ED006F6067 /* NSObject+DLIntrospection.m */; };
 		18CF4E55241A24ED006F6067 /* MyExpriceObj.m in Sources */ = {isa = PBXBuildFile; fileRef = 18CF4E51241A24ED006F6067 /* MyExpriceObj.m */; };
+		18CF5336241A402B006F6067 /* TestObj+Categor.m in Sources */ = {isa = PBXBuildFile; fileRef = 18CF5335241A402B006F6067 /* TestObj+Categor.m */; };
 		393CEAC00DC69E3E000B69DE /* objc-references.mm in Sources */ = {isa = PBXBuildFile; fileRef = 393CEABF0DC69E3E000B69DE /* objc-references.mm */; };
 		393CEAC60DC69E67000B69DE /* objc-references.h in Headers */ = {isa = PBXBuildFile; fileRef = 393CEAC50DC69E67000B69DE /* objc-references.h */; };
 		39ABD72312F0B61800D1054C /* objc-weak.h in Headers */ = {isa = PBXBuildFile; fileRef = 39ABD71F12F0B61800D1054C /* objc-weak.h */; };
@@ -191,6 +192,8 @@
 		18CF4E50241A24ED006F6067 /* NSObject+DLIntrospection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+DLIntrospection.h"; sourceTree = "<group>"; };
 		18CF4E51241A24ED006F6067 /* MyExpriceObj.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MyExpriceObj.m; sourceTree = "<group>"; };
 		18CF4E52241A24ED006F6067 /* MyExpriceObj.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyExpriceObj.h; sourceTree = "<group>"; };
+		18CF5334241A402B006F6067 /* TestObj+Categor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "TestObj+Categor.h"; sourceTree = "<group>"; };
+		18CF5335241A402B006F6067 /* TestObj+Categor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "TestObj+Categor.m"; sourceTree = "<group>"; };
 		393CEABF0DC69E3E000B69DE /* objc-references.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = "objc-references.mm"; path = "runtime/objc-references.mm"; sourceTree = "<group>"; };
 		393CEAC50DC69E67000B69DE /* objc-references.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "objc-references.h"; path = "runtime/objc-references.h"; sourceTree = "<group>"; };
 		39ABD71F12F0B61800D1054C /* objc-weak.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "objc-weak.h"; path = "runtime/objc-weak.h"; sourceTree = "<group>"; };
@@ -504,6 +507,8 @@
 				18CF4E4E241A24ED006F6067 /* NSObject+DLIntrospection.m */,
 				18CF4E4F241A24ED006F6067 /* TestObj.h */,
 				18CF4E4D241A24ED006F6067 /* TestObj.m */,
+				18CF5334241A402B006F6067 /* TestObj+Categor.h */,
+				18CF5335241A402B006F6067 /* TestObj+Categor.m */,
 				7A2E8B0C2410F196000F6584 /* main.m */,
 			);
 			path = KCObjcTest;
@@ -858,6 +863,7 @@
 			files = (
 				7A2E8B0D2410F196000F6584 /* main.m in Sources */,
 				18CF4E54241A24ED006F6067 /* NSObject+DLIntrospection.m in Sources */,
+				18CF5336241A402B006F6067 /* TestObj+Categor.m in Sources */,
 				18CF4E55241A24ED006F6067 /* MyExpriceObj.m in Sources */,
 				18CF4E53241A24ED006F6067 /* TestObj.m in Sources */,
 			);

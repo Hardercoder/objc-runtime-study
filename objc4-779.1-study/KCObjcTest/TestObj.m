@@ -14,6 +14,7 @@
 @end
 
 @implementation TestObj
+
 - (void)instanceMethod0 {
     NSLog(@"%s",__FUNCTION__);
 }

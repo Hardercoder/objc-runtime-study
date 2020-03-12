@@ -217,6 +217,7 @@ _object_set_associative_reference(id object, const void *key, id value, uintptr_
 void
 _object_remove_assocations(id object)
 {
+    printf("objc-dealloc-step %s\t_object_remove_assocations\n",class_getName(object->ISA()));
     ObjectAssociationMap refs{};
 
     {

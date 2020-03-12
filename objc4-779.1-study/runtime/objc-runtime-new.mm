@@ -7366,6 +7366,7 @@ void objc_disposeClassPair(Class cls)
 id 
 objc_constructInstance(Class cls, void *bytes)
 {
+    printf("objc-alloc-step %s\tobjc_constructInstance\n", class_getName(cls));
     if (!cls  ||  !bytes) return nil;
 
     id obj = (id)bytes;
@@ -7404,22 +7405,32 @@ _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
                               size_t *outAllocatedSize = nil)
 {
     ASSERT(cls->isRealized());
-
+    printf("objc-alloc-step %s\t_class_createInstanceFromZone\n",class_getName(cls));
     // Read class's info bits all at once for performance
     bool hasCxxCtor = cxxConstruct && cls->hasCxxCtor();
     bool hasCxxDtor = cls->hasCxxDtor();
     bool fast = cls->canAllocNonpointer();
     size_t size;
-
+   // runtime-analysis-alloc过程：4._class_createInstanceFromZone是真正的创建一个实例的地方，根据zone参数选择malloc_zone_calloc还是calloc
+   // 创建完成后，对象的类型为id，也就是objc_object类型，之后调用对象的initInstanceIsa初始化isa指针
+   // initInstanceIsa内部调用initIsa c函数，初始化isa
     size = cls->instanceSize(extraBytes);
     if (outAllocatedSize) *outAllocatedSize = size;
 
     id obj;
     if (zone) {
+        
         obj = (id)malloc_zone_calloc((malloc_zone_t *)zone, 1, size);
     } else {
         obj = (id)calloc(1, size);
     }
+    if (zone) {
+        printf("objc-alloc-step %s\tmalloc_zone_calloc 申请内存\t%zu\n", class_getName(cls), size);
+    }
+    else {
+        printf("objc-alloc-step %s\tcalloc 申请内存\t%zu\n", class_getName(cls), size);
+    }
+    
     if (slowpath(!obj)) {
         if (construct_flags & OBJECT_CONSTRUCT_CALL_BADALLOC) {
             return _objc_callBadAllocHandler(cls);
@@ -7455,6 +7466,8 @@ id
 _objc_rootAllocWithZone(Class cls, malloc_zone_t *zone __unused)
 {
     // allocWithZone under __OBJC2__ ignores the zone parameter
+    // runtime-analysis-alloc过程：3._objc_rootAllocWithZone内部调用_class_createInstanceFromZone
+    printf("objc-alloc-step %s\t_objc_rootAllocWithZone\n",class_getName(cls));
     return _class_createInstanceFromZone(cls, 0, nil,
                                          OBJECT_CONSTRUCT_CALL_BADALLOC);
 }
@@ -7465,7 +7478,7 @@ _objc_rootAllocWithZone(Class cls, malloc_zone_t *zone __unused)
 * Locking: none
 **********************************************************************/
 #if SUPPORT_NONPOINTER_ISA
-#warning fixme optimize class_createInstances
+//#warning fixme optimize class_createInstances
 #endif
 unsigned 
 class_createInstances(Class cls, size_t extraBytes, 
@@ -7556,6 +7569,7 @@ object_copyFromZone(id oldObj, size_t extraBytes, void *zone)
 **********************************************************************/
 void *objc_destructInstance(id obj) 
 {
+    printf("objc-dealloc-step %s\tobjc_destructInstance\n",class_getName(obj->ISA()));
     if (obj) {
         // Read all of the flags at once for performance.
         bool cxx = obj->hasCxxDtor();
@@ -7580,7 +7594,7 @@ id
 object_dispose(id obj)
 {
     if (!obj) return nil;
-
+    printf("objc-dealloc-step %s\tobject_dispose\n",class_getName(obj->ISA()));
     objc_destructInstance(obj);    
     free(obj);
 

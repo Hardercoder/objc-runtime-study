@@ -1217,7 +1217,7 @@ NEVER_INLINE void
 objc_object::clearDeallocating_slow()
 {
     ASSERT(isa.nonpointer  &&  (isa.weakly_referenced || isa.has_sidetable_rc));
-
+    printf("objc-dealloc-step %s\tclearDeallocating_slow 移除weak和ref table\n",class_getName(this->ISA()));
     SideTable& table = SideTables()[this];
     table.lock();
     if (isa.weakly_referenced) {
@@ -1543,6 +1543,7 @@ objc_object::sidetable_release(bool performDealloc)
     }
     table.unlock();
     if (do_dealloc  &&  performDealloc) {
+        printf("objc-dealloc-step %s\tsidetable_release:objc_msgSend(dealloc)\n",class_getName(this->ISA()));
         ((void(*)(objc_object *, SEL))objc_msgSend)(this, @selector(dealloc));
     }
     return do_dealloc;
@@ -1552,6 +1553,7 @@ objc_object::sidetable_release(bool performDealloc)
 void 
 objc_object::sidetable_clearDeallocating()
 {
+    printf("objc-dealloc-step %s\tsidetable_clearDeallocating 移除weak和ref table\n",class_getName(this->ISA()));
     SideTable& table = SideTables()[this];
 
     // clear any weak table items
@@ -1697,17 +1699,21 @@ _objc_rootRelease(id obj)
 static ALWAYS_INLINE id
 callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 {
+    printf("objc-alloc-step %s\tcallAlloc\n",class_getName(cls));
 #if __OBJC2__
     if (slowpath(checkNil && !cls)) return nil;
     if (fastpath(!cls->ISA()->hasCustomAWZ())) {
+        // runtime-analysis-alloc过程：2.callAlloc调用_objc_rootAllocWithZone
         return _objc_rootAllocWithZone(cls, nil);
     }
 #endif
 
     // No shortcuts available.
     if (allocWithZone) {
+        printf("objc-alloc-step %s\tobjc_msgSend:allocWithZone\n",class_getName(cls));
         return ((id(*)(id, SEL, struct _NSZone *))objc_msgSend)(cls, @selector(allocWithZone:), nil);
     }
+    printf("objc-alloc-step %s\tobjc_msgSend:alloc\n",class_getName(cls));
     return ((id(*)(id, SEL))objc_msgSend)(cls, @selector(alloc));
 }
 
@@ -1717,6 +1723,7 @@ callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 id
 _objc_rootAlloc(Class cls)
 {
+    printf("objc-alloc-step %s\t_objc_rootAlloc\n",class_getName(cls));
     return callAlloc(cls, false/*checkNil*/, true/*allocWithZone*/);
 }
 
@@ -1724,6 +1731,8 @@ _objc_rootAlloc(Class cls)
 id
 objc_alloc(Class cls)
 {
+    // runtime-analysis-alloc过程：1.调用类方法alloc时，会调用底层callAlloc,有三个参数，类，是否检查nil，是否要调用allocWithZone
+    printf("objc-alloc-step %s\tobjc_alloc:\n",class_getName(cls));
     return callAlloc(cls, true/*checkNil*/, false/*allocWithZone*/);
 }
 
@@ -1814,7 +1823,7 @@ void
 _objc_rootDealloc(id obj)
 {
     ASSERT(obj);
-
+    printf("objc-dealloc-step %s\t_objc_rootDealloc\n",class_getName(obj->ISA()));
     obj->rootDealloc();
 }
 
@@ -1831,6 +1840,7 @@ _objc_rootInit(id obj)
 {
     // In practice, it will be hard to rely on this function.
     // Many classes do not properly chain -init calls.
+    printf("objc-init-step %s\t_objc_rootInit 内部直接返回obj\n",class_getName(obj->ISA()));
     return obj;
 }
 
@@ -2315,6 +2325,7 @@ __attribute__((objc_nonlazy_class))
 }
 
 + (id)alloc {
+    printf("objc-alloc-step %s\t+alloc\n",class_getName(self));
     return _objc_rootAlloc(self);
 }
 
@@ -2329,6 +2340,7 @@ __attribute__((objc_nonlazy_class))
 }
 
 - (id)init {
+    printf("objc-init-step %s\t-init\n",class_getName([self class]));
     return _objc_rootInit(self);
 }
 
@@ -2339,6 +2351,7 @@ __attribute__((objc_nonlazy_class))
 
 // Replaced by NSZombies
 - (void)dealloc {
+    printf("objc-dealloc-step %s\t-dealloc\n",class_getName([self class]));
     _objc_rootDealloc(self);
 }
 

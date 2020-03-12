@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
     NSArray *_testArray;
     NSDictionary *_testDict;
 }
+
 @property (nonatomic, assign) BOOL pBool;
 @property (nonatomic, assign) NSInteger pInteger;
 @property (nonatomic, assign) CGFloat pFloat;
