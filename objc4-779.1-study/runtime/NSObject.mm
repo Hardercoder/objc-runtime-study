@@ -270,6 +270,7 @@ template <HaveOld haveOld, HaveNew haveNew,
 static id 
 storeWeak(id *location, objc_object *newObj)
 {
+    printf("objc-weakpointer-step template-storeWeak %s旧值 %s新值\n",haveOld ? "有" : "无",haveNew ? "有" : "无");
 //    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     ASSERT(haveOld  ||  haveNew);
     if (!haveNew) ASSERT(newObj == nil);
@@ -282,6 +283,15 @@ storeWeak(id *location, objc_object *newObj)
     // Acquire locks for old and new values.
     // Order by lock address to prevent lock ordering problems. 
     // Retry if the old value changes underneath us.
+    /*
+     全局存在64张SideTable中，iphone真机是8张，这些表是存到一个数组中。每个对象会根据它的地址先进行哈希算法得到一个index，然后按照index取出它所对应的SideTable
+     这一步其实可以看到：多个对象可以对应一个SideTable，但是每个SideTable只对应一个对象
+     
+     取出它所对应的SideTable之后，每个SideTable还有一张weaktable和一张reftable，分别用于存储弱引用和引用计数
+     当存储弱引用时，会取出对应的weaktable，这个weaktable中存储了weak_entries也是一个可变数组，数组中每个元素是一个weak_entry_t结构的数据，通过对象地址经过哈希算法后获取他所对应的weak_entry_t
+     这个weak_entry_t有一个referers里面存储了每一个若引用的变量的地址
+     
+     */
  retry:
     if (haveOld) {
         oldObj = *location;
@@ -289,6 +299,7 @@ storeWeak(id *location, objc_object *newObj)
     } else {
         oldTable = nil;
     }
+    
     if (haveNew) {
         newTable = &SideTables()[newObj];
     } else {
@@ -367,7 +378,7 @@ storeWeak(id *location, objc_object *newObj)
 id
 objc_storeWeak(id *location, id newObj)
 {
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
+    printf("objc-weakpointer-step %s %s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     return storeWeak<DoHaveOld, DoHaveNew, DoCrashIfDeallocating>
         (location, (objc_object *)newObj);
 }
@@ -386,7 +397,7 @@ objc_storeWeak(id *location, id newObj)
 id
 objc_storeWeakOrNil(id *location, id newObj)
 {
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
+    printf("objc-weakpointer-step %s %s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     return storeWeak<DoHaveOld, DoHaveNew, DontCrashIfDeallocating>
         (location, (objc_object *)newObj);
 }
@@ -411,7 +422,7 @@ objc_storeWeakOrNil(id *location, id newObj)
 id
 objc_initWeak(id *location, id newObj)
 {
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
+    printf("objc-weakpointer-step %s %s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     if (!newObj) {
         *location = nil;
         return nil;
@@ -423,7 +434,7 @@ objc_initWeak(id *location, id newObj)
 id
 objc_initWeakOrNil(id *location, id newObj)
 {
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
+    printf("objc-weakpointer-step %s %s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     if (!newObj) {
         *location = nil;
         return nil;
@@ -448,7 +459,7 @@ objc_initWeakOrNil(id *location, id newObj)
 void
 objc_destroyWeak(id *location)
 {
-//    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
+    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
     (void)storeWeak<DoHaveOld, DontHaveNew, DontCrashIfDeallocating>
         (location, nil);
 }
@@ -467,7 +478,7 @@ objc_destroyWeak(id *location)
 id
 objc_loadWeakRetained(id *location)
 {
-//    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
+    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
     id obj;
     id result;
     Class cls;
@@ -536,7 +547,7 @@ objc_loadWeakRetained(id *location)
 id
 objc_loadWeak(id *location)
 {
-//    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
+    printf("objc-weakpointer-step %s\t%s\n",class_getName((*location)->ISA()), __func__);
     if (!*location) return nil;
     return objc_autorelease(objc_loadWeakRetained(location));
 }
@@ -559,7 +570,7 @@ objc_loadWeak(id *location)
 void
 objc_copyWeak(id *dst, id *src)
 {
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*dst)->ISA()),class_getName((*src)->ISA()), __func__);
+    printf("objc-weakpointer-step %s %s\t%s\n",class_getName((*dst)->ISA()),class_getName((*src)->ISA()), __func__);
     id obj = objc_loadWeakRetained(src);
     objc_initWeak(dst, obj);
     objc_release(obj);
@@ -577,7 +588,7 @@ objc_copyWeak(id *dst, id *src)
 void
 objc_moveWeak(id *dst, id *src)
 {
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*dst)->ISA()),class_getName((*src)->ISA()), __func__);
+    printf("objc-weakpointer-step %s%s\t%s\n",class_getName((*dst)->ISA()),class_getName((*src)->ISA()), __func__);
     objc_copyWeak(dst, src);
     objc_destroyWeak(src);
     *src = nil;
