@@ -271,7 +271,6 @@ static id
 storeWeak(id *location, objc_object *newObj)
 {
     printf("objc-weakpointer-step template-storeWeak %s旧值 %s新值\n",haveOld ? "有" : "无",haveNew ? "有" : "无");
-//    printf("objc-weakpointer-step %s-%s\t%s\n",class_getName((*location)->ISA()), class_getName(newObj->ISA()), __func__);
     ASSERT(haveOld  ||  haveNew);
     if (!haveNew) ASSERT(newObj == nil);
 

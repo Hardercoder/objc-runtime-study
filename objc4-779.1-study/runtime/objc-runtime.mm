@@ -308,7 +308,7 @@ void removeHeader(header_info *hi)
 {
     header_info *prev = NULL;
     header_info *current = NULL;
-
+    // 所以header_info是一个链表结构？
     for (current = FirstHeader; current != NULL; current = current->getNext()) {
         if (current == hi) {
             header_info *deadHead = current;

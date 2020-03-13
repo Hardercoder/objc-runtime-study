@@ -2982,6 +2982,7 @@ load_images(const char *path __unused, const struct mach_header *mh)
 void 
 unmap_image(const char *path __unused, const struct mach_header *mh)
 {
+    // 卸载镜像，但是什么时机卸载，还需要查资料
     recursive_mutex_locker_t lock(loadMethodLock);
     mutex_locker_t lock2(runtimeLock);
     unmap_image_nolock(mh);
@@ -3692,10 +3693,11 @@ static void schedule_class_load(Class cls)
     ASSERT(cls->isRealized());  // _read_images should realize
 
     if (cls->data()->flags & RW_LOADED) return;
-
+    // 递归向上调用本方法，保证父类如果有load方法，父类的load方法在class_loadable_list前面
     // Ensure superclass-first ordering
     schedule_class_load(cls->superclass);
 
+    // 将类的load方法添加到loadable_classes中，它里面的每个元素是一个loadable_class，这个类型包括两个成员，一个class一个load方法的实现
     add_class_to_loadable_list(cls);
     cls->setInfo(RW_LOADED); 
 }
@@ -3733,6 +3735,8 @@ void prepare_load_methods(const headerType *mhdr)
         }
         realizeClassWithoutSwift(cls, nil);
         ASSERT(cls->ISA()->isRealized());
+        // 添加到存储分类load方法的loadable_categories里面，顺序是和build Source中是一样的
+        // loadable_categories里面每一个元素是loadable_category接口题，它包含一个cat和一个method
         add_category_to_loadable_list(cat);
     }
 }
@@ -3754,6 +3758,7 @@ void _unload_image(header_info *hi)
 
     // Ignore __objc_catlist2. We don't support unloading Swift
     // and we never will.
+    // 获取分类列表
     category_t * const *catlist = _getObjc2CategoryList(hi, &count);
     for (i = 0; i < count; i++) {
         category_t *cat = catlist[i];
@@ -3763,9 +3768,11 @@ void _unload_image(header_info *hi)
         // fixme for MH_DYLIB cat's class may have been unloaded already
 
         // unattached list
+        // 它里面用类对象当做key，将category添加到一个list中，如果list中包含category就直接移除，若移除后list变为空，则把这个entry移除
         objc::unattachedCategories.eraseCategoryForClass(cat, cls);
 
         // +load queue
+        // 从保存category的load方法的列表loadable_categories中移除对应分类
         remove_category_from_loadable_list(cat);
     }
 
@@ -3777,7 +3784,7 @@ void _unload_image(header_info *hi)
 
     objc::DenseSet<Class> classes{};
     classref_t const *classlist;
-
+    // 获取该镜像包含的lazy和非lazy的class list，将他们移除
     classlist = _getObjc2ClassList(hi, &count);
     for (i = 0; i < count; i++) {
         Class cls = remapClass(classlist[i]);
@@ -3792,12 +3799,14 @@ void _unload_image(header_info *hi)
 
     // First detach classes from each other. Then free each class.
     // This avoid bugs where this loop unloads a subclass before its superclass
-
+    // 从load_list中移除类，并且把元类和类从对象类的树种移除，将和类关联的还未挂载的分类移除
     for (Class cls: classes) {
         remove_class_from_loadable_list(cls);
         detach_class(cls->ISA(), YES);
         detach_class(cls, NO);
     }
+    
+    // 将list中的元类和类对象从内存中移除
     for (Class cls: classes) {
         free_class(cls->ISA());
         free_class(cls);
@@ -7281,23 +7290,24 @@ static void free_class(Class cls)
         try_free(meth.types);
     }
     rw->methods.tryFree();
-    
+    // 移除成员变量
     const ivar_list_t *ivars = ro->ivars;
     if (ivars) {
         for (auto& ivar : *ivars) {
+            // 移除成员变量的成员变量
             try_free(ivar.offset);
             try_free(ivar.name);
             try_free(ivar.type);
         }
         try_free(ivars);
     }
-
+    // 移除属性
     for (auto& prop : rw->properties) {
         try_free(prop.name);
         try_free(prop.attributes);
     }
     rw->properties.tryFree();
-
+    // 移除协议
     rw->protocols.tryFree();
     
     try_free(ro->ivarLayout);

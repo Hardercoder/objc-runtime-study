@@ -191,10 +191,12 @@ static void call_class_loads(void)
     loadable_classes = nil;
     loadable_classes_allocated = 0;
     loadable_classes_used = 0;
-    
+    // 遍历loadable_classes的副本，根据函数地址直接调用load函数
     // Call all +loads for the detached list.
     for (i = 0; i < used; i++) {
         Class cls = classes[i].cls;
+        // 这里使用了指针函数，只要返回类型和入参个数及类型对应，那么就可以进行指针函数的调用
+        // 虽然存储的是IMP类型，但是实际上IMP就是一个指针，无它
         load_method_t load_method = (load_method_t)classes[i].method;
         if (!cls) continue; 
 

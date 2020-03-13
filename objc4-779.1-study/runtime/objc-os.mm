@@ -624,7 +624,7 @@ unmap_image_nolock(const struct mach_header *mh)
     }
 
     header_info *hi;
-    
+    // 一个image会有多个header_info，需要获取到我们这个mh所对应的header_info
     // Find the runtime's header_info struct for the image
     for (hi = FirstHeader; hi != NULL; hi = hi->getNext()) {
         if (hi->mhdr() == (const headerType *)mh) {
@@ -920,16 +920,23 @@ void _objc_init(void)
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
-    
+    printf("objc-bootstrap-step %s\n",__func__);
     // fixme defer initialization until an objc-using image is found?
+    // 环境的一个初始化，主要是xcode和命令行启动时的一些参数处理
     environ_init();
+    // 注册一些线程销毁时需要做的处理，还没仔细阅读，但是看到了@synchronize和它所关联的SyncData，再联想到玉令天下大神关于@synchronize锁的分析，里面应该有很值得一看的代码
     tls_init();
+    // 做一些C++的静态初始化工作
     static_init();
+    // 初始化未挂载到主类上的catetory的map，初始化已经realize的类的set
     runtime_init();
+    // 注册一个oc的异常处理，处理完成后再调用原来的terminate
     exception_init();
+    // 没搞太懂，貌似是来记录可重启的task的ranges
     cache_init();
+    // 这个跟高深，libobjc的一些处理，主要用于macos上，iOS上貌似没啥用
     _imp_implementationWithBlock_init();
-
+    // 注册镜像的map，加载和卸载处理,注册的时候就会用已经加载的一部分镜像去调用map_images
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
 }
 
