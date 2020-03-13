@@ -72,8 +72,12 @@ foreach_data_segment(const headerType *mhdr,
     intptr_t slide = 0;
 
     // compute VM slide
+    // 计算VM的slide
     const segmentType *seg = (const segmentType *) (mhdr + 1);
+    // ncmds => number of load commands
+    // 这一步是为了确定slide滑动偏移
     for (unsigned long i = 0; i < mhdr->ncmds; i++) {
+        // 遍历load_commands，查找seg的cmd是0x19且段名为__TEXT的，然后计算地址偏移，赋值到slide
         if (seg->cmd == SEGMENT_CMD  &&
             segnameEquals(seg->segname, "__TEXT"))
         {
@@ -86,6 +90,7 @@ foreach_data_segment(const headerType *mhdr,
     // enumerate __DATA* segments
     seg = (const segmentType *) (mhdr + 1);
     for (unsigned long i = 0; i < mhdr->ncmds; i++) {
+        // 遍历load_commands，查找seg的cmd是0x19且段名前缀包含__DATA的，执行回调函数
         if (seg->cmd == SEGMENT_CMD  &&
             segnameStartsWith(seg->segname, "__DATA"))
         {

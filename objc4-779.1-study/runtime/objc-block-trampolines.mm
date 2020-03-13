@@ -160,6 +160,7 @@ public:
 
         // This code may be called concurrently.
         // In the worst case we perform extra dyld operations.
+        // em...使用dlopen打开加载到内存的 加载路径，加载的模式
         void *dylib = dlopen("/usr/lib/libobjc-trampolines.dylib",
                              RTLD_NOW | RTLD_LOCAL | RTLD_FIRST);
         if (!dylib) {
@@ -469,6 +470,7 @@ _imp_implementationWithBlock_init(void)
     if (__progname &&
         (strcmp(__progname, "QtWebEngineProcess") == 0 ||
          strcmp(__progname, "Steam Helper") == 0)) {
+        // 主要是为了修复以上的两个问题，一个是QT web引擎进程的问题，一个是 Steam Helper的问题
         Trampolines.Initialize();
     }
 #endif

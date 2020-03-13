@@ -456,6 +456,7 @@ static objc_exception_matcher exception_matcher = _objc_default_exception_matche
 **********************************************************************/
 static void _objc_default_uncaught_exception_handler(id exception)
 {
+    // oc默认的一个异常处理机制
 }
 static objc_uncaught_exception_handler uncaught_handler = _objc_default_uncaught_exception_handler;
 
@@ -489,9 +490,9 @@ objc_setExceptionMatcher(objc_exception_matcher fn)
 
 
 /***********************************************************************
-* objc_setUncaughtExceptionHandler
-* Set a handler for uncaught Objective-C exceptions. 
-* Returns the previous handler. 
+* objc_setUncaughtExceptionHandler 这一段和exception_init中实现的逻辑一样，传入一个新的异常处理，返回之前的异常处理
+* Set a handler for uncaught Objective-C exceptions.   设置oc的异常处理handler
+* Returns the previous handler.  抛出之前的异常处理handler
 **********************************************************************/
 objc_uncaught_exception_handler 
 objc_setUncaughtExceptionHandler(objc_uncaught_exception_handler fn)
@@ -675,10 +676,10 @@ bool _objc_exception_do_catch(struct objc_typeinfo *catch_tinfo,
 * Custom std::terminate handler.
 *
 * The uncaught exception callback is implemented as a std::terminate handler. 
-* 1. Check if there's an active exception
-* 2. If so, check if it's an Objective-C exception
-* 3. If so, call our registered callback with the object.
-* 4. Finally, call the previous terminate handler.
+* 1. Check if there's an active exception  检测是否有一个处于active的异常
+* 2. If so, check if it's an Objective-C exception 如果有一个active的异常，检查它是否是一个oc的异常
+* 3. If so, call our registered callback with the object. 如果是oc的异常就调用uncaught_handler抛到oc运行时，uncaught handler默认为_objc_default_uncaught_exception_handler
+* 4. Finally, call the previous terminate handler. 最后保证调用原来的崩溃handler
 **********************************************************************/
 static void (*old_terminate)(void) = nil;
 static void _objc_terminate(void)
@@ -1431,6 +1432,7 @@ static void call_alt_handlers(struct _Unwind_Context *ctx)
 **********************************************************************/
 void exception_init(void)
 {
+    // set_terminate 传入一个新的崩溃回调，返回之前的崩溃回调
     old_terminate = std::set_terminate(&_objc_terminate);
 }
 

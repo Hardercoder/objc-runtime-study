@@ -1010,6 +1010,7 @@ public:
 
     static inline void *push() 
     {
+        // 自动释放池底层push操作，将一个POOL_BOUNDARY
         id *dest;
         if (slowpath(DebugPoolAllocation)) {
             // Each autorelease pool starts on a new pool page.
@@ -1126,6 +1127,8 @@ public:
 
     static void init()
     {
+        // 使用pthread_key_init_np初始化一个线程key被释放时需要执行的方法tls_dealloc
+        // 其他可见 _objc_init()中的tls_init()
         int r __unused = pthread_key_init_np(AutoreleasePoolPage::key, 
                                              AutoreleasePoolPage::tls_dealloc);
         ASSERT(r == 0);
@@ -1999,8 +2002,11 @@ objc_objectptr_t objc_unretainedPointer(id object) { return object; }
 
 void arr_init(void) 
 {
+    // 初始化自动释放池底层结构AutoreleasePoolPage
     AutoreleasePoolPage::init();
+    // 初始化存储weaktable和reftable的SideTable的SideTablesMap
     SideTablesMap.init();
+    // 初始化存储关联对象的结构
     _objc_associations_init();
 }
 

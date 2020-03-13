@@ -46,6 +46,8 @@ void sel_init(size_t selrefCount)
 #if SUPPORT_PREOPT
     // If dyld finds a known shared cache selector, then it must be also looking
     // in the shared cache table.
+    // 必须在_dyld_objc_notify_register之后调用，查看dyld是否已经将retain这个selector放到共享缓存中
+    // 之后还必须查找共享的缓存table
     if (_dyld_get_objc_selector("retain") != nil)
         useDyldSelectorLookup = true;
     else
@@ -65,6 +67,7 @@ void sel_init(size_t selrefCount)
                      occupied, capacity,
                      (unsigned)(occupied/(double)capacity*100));
     }
+    // namedSelectors是一个denseset，初始化一个set的容量
 	namedSelectors.init(useDyldSelectorLookup ? 0 : (unsigned)selrefCount);
 #else
 	namedSelectors.init((unsigned)selrefCount);
@@ -73,7 +76,7 @@ void sel_init(size_t selrefCount)
     // Register selectors used by libobjc
 
     mutex_locker_t lock(selLock);
-
+    // 分别将.cxx_construct和.cxx_destruct添加到namedSelectors中
     SEL_cxx_construct = sel_registerNameNoLock(".cxx_construct", NO);
     SEL_cxx_destruct = sel_registerNameNoLock(".cxx_destruct", NO);
 }
@@ -112,12 +115,14 @@ static SEL search_builtins(const char *name)
 #if SUPPORT_PREOPT
   if (builtins) {
       SEL result = 0;
+      // 先查找内建的builtins是否有这个selector
       if ((result = (SEL)builtins->get(name)))
           return result;
-
+      // 然后查找dyld是否缓存了它
       if ((result = (SEL)_dyld_get_objc_selector(name)))
           return result;
   } else if (useDyldSelectorLookup) {
+      // 如果使用dyld查找selector，查找dyld是否缓存了它
       if (SEL result = (SEL)_dyld_get_objc_selector(name))
           return result;
   }
@@ -129,16 +134,17 @@ static SEL search_builtins(const char *name)
 static SEL __sel_registerName(const char *name, bool shouldLock, bool copy) 
 {
     SEL result = 0;
-
+    // 注册一个selector到namedSelectors中
     if (shouldLock) selLock.assertUnlocked();
     else selLock.assertLocked();
 
     if (!name) return (SEL)0;
-
+    // 是内建的话，直接返回sel
     result = search_builtins(name);
     if (result) return result;
     
     conditional_mutex_locker_t lock(selLock, shouldLock);
+    // 将sel添加到namedSelectors这个dense set中
 	auto it = namedSelectors.get().insert(name);
 	if (it.second) {
 		// No match. Insert.

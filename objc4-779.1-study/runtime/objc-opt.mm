@@ -402,8 +402,9 @@ header_info *preoptimizedHinfoForHeader(const headerType *mhdr)
     // fixme old ABI shared cache doesn't prepare these properly
     return nil;
 #endif
-
+    // 获取系统已经预缓存的header_infos
     objc_headeropt_ro_t *hinfos = opt ? opt->headeropt_ro() : nil;
+    // hinfos->get中的get方法采用双指针加快遍历
     if (hinfos) return hinfos->get(mhdr);
     else return nil;
 }

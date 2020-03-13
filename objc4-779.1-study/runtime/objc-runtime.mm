@@ -265,17 +265,20 @@ objc::SafeRanges::remove(uintptr_t start, uintptr_t end)
 }
 
 /***********************************************************************
-* appendHeader.  Add a newly-constructed header_info to the list. 
+* appendHeader.  Add a newly-constructed header_info to the list.  添加新创建的header_info进list中
 **********************************************************************/
 void appendHeader(header_info *hi)
 {
+    // 将header_info添加到header list中
     // Add the header to the header list. 
     // The header is appended to the list, to preserve the bottom-up order.
     hi->setNext(NULL);
     if (!FirstHeader) {
         // list is empty
+        // 列表为空，直接赋值即可
         FirstHeader = LastHeader = hi;
     } else {
+        // 进行链表的插入操作
         if (!LastHeader) {
             // list is not empty, but LastHeader is invalid - recompute it
             LastHeader = FirstHeader;
@@ -288,6 +291,7 @@ void appendHeader(header_info *hi)
 
 #if __OBJC2__
     if ((hi->mhdr()->flags & MH_DYLIB_IN_CACHE) == 0) {
+        // 遍历header，执行后面的函数，然后添加到dataSegmentsRanges
         foreach_data_segment(hi->mhdr(), [](const segmentType *seg, intptr_t slide) {
             uintptr_t start = (uintptr_t)seg->vmaddr + slide;
             objc::dataSegmentsRanges.add(start, start + seg->vmsize);
@@ -494,8 +498,11 @@ void _objc_pthread_destroyspecific(void *arg)
 {
     _objc_pthread_data *data = (_objc_pthread_data *)arg;
     if (data != NULL) {
+        // 释放data->initializingClasses的内存
         _destroyInitializingClassList(data->initializingClasses);
+        // 释放使用@synchronize创建的SyncCache
         _destroySyncCache(data->syncCache);
+        // 释放althandler
         _destroyAltHandlerList(data->handlerList);
         for (int i = 0; i < (int)countof(data->printableNames); i++) {
             if (data->printableNames[i]) {
@@ -514,6 +521,7 @@ void _objc_pthread_destroyspecific(void *arg)
 void tls_init(void)
 {
 #if SUPPORT_DIRECT_THREAD_KEYS
+    // 设置非使用pthread_key_create的方法创建的key的释放函数
     pthread_key_init_np(TLS_DIRECT_KEY, &_objc_pthread_destroyspecific);
 #else
     _objc_pthread_key = tls_create(&_objc_pthread_destroyspecific);

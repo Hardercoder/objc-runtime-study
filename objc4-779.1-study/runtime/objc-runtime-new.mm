@@ -464,6 +464,7 @@ addClassTableEntry(Class cls, bool addMeta = true)
     if (!isKnownClass(cls))
         set.insert(cls);
     if (addMeta)
+        // 添加一个classtable的entry
         addClassTableEntry(cls->ISA(), false);
 }
 
@@ -1097,7 +1098,7 @@ public:
     void addForClass(locstamped_category_t lc, Class cls)
     {
         runtimeLock.assertLocked();
-
+        // 是一个densemap，保存了class到category_list的映射关系，可以通过主类获取主类所有的分类
         if (slowpath(PrintConnecting)) {
             _objc_inform("CLASS: found category %c%s(%s)",
                          cls->isMetaClass() ? '+' : '-',
@@ -1218,7 +1219,7 @@ prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
     for (int i = 0; i < addedCount; i++) {
         method_list_t *mlist = addedLists[i];
         ASSERT(mlist);
-
+        // 修复method_list_t的name和selector的对应
         // Fixup selectors if necessary
         if (!mlist->isFixedUp()) {
             fixupMethodList(mlist, methodsFromBundle, true/*sort*/);
@@ -1229,8 +1230,12 @@ prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
     // tracked by the class's flags. If it's not initialized yet,
     // then objc_class::setInitialized() will take care of it.
     if (cls->isInitialized()) {
+        //+alloc / +allocWithZone:
         objc::AWZScanner::scanAddedMethodLists(cls, addedLists, addedCount);
+        // retain/release/autorelease/retainCount/
+        // _tryRetain/_isDeallocating/retainWeakReference/allowsWeakReference
         objc::RRScanner::scanAddedMethodLists(cls, addedLists, addedCount);
+        // +new, ±class, ±self, ±isKindOfClass:, ±respondsToSelector
         objc::CoreScanner::scanAddedMethodLists(cls, addedLists, addedCount);
     }
 }
@@ -1243,6 +1248,7 @@ static void
 attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cats_count,
                  int flags)
 {
+    // 将分类的方法，属性，协议列表添加到主类中
     if (slowpath(PrintReplacedMethods)) {
         printReplacements(cls, cats_list, cats_count);
     }
@@ -1255,6 +1261,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
     /*
      * Only a few classes have more than 64 categories during launch.
      * This uses a little stack, and avoids malloc.
+     * 只有极少量的类会有超过64个分类，所以这里使用了栈去避免堆申请
      *
      * Categories must be added in the proper order, which is back
      * to front. To do that with the chunking, we iterate cats_list
@@ -1276,7 +1283,9 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
 
     for (uint32_t i = 0; i < cats_count; i++) {
         auto& entry = cats_list[i];
-
+        // for循环遍历每一个category_t的结构体
+        
+        // 获取结构体的method_list
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
         if (mlist) {
             if (mcount == ATTACH_BUFSIZ) {
@@ -1287,7 +1296,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
             mlists[ATTACH_BUFSIZ - ++mcount] = mlist;
             fromBundle |= entry.hi->isBundle();
         }
-
+        // 获取结构体的propety_list，将属性添加到rw的properties上
         property_list_t *proplist =
             entry.cat->propertiesForMeta(isMeta, entry.hi);
         if (proplist) {
@@ -1297,7 +1306,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
             }
             proplists[ATTACH_BUFSIZ - ++propcount] = proplist;
         }
-
+        // 获取分类所遵循的protocol_list_t
         protocol_list_t *protolist = entry.cat->protocolsForMeta(isMeta);
         if (protolist) {
             if (protocount == ATTACH_BUFSIZ) {
@@ -1308,6 +1317,9 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
         }
     }
 
+    // 最后这一步是相当于取了个余 %的哪种
+    // 解释下 mlists + ATTACH_BUFSIZ - mcount，这里其实是取得倒数ATTACH_BUFSIZ - mcount位置的地址，这样我们就添加了后面的子数组
+    // 因为mlists/proplists/protolists数组是从后往前添加的，所以我们顺序添加后越在后面添加的越靠前
     if (mcount > 0) {
         prepareMethodLists(cls, mlists + ATTACH_BUFSIZ - mcount, mcount, NO, fromBundle);
         rw->methods.attachLists(mlists + ATTACH_BUFSIZ - mcount, mcount);
@@ -1587,6 +1599,7 @@ static Class getClass_impl(const char *name)
     ASSERT(gdb_objc_realized_classes);
 
     // Try runtime-allocated table
+    // 先从运行时的gdb_objc_realized_classes表中根据name查找是否有对应了类的实现
     Class result = (Class)NXMapGet(gdb_objc_realized_classes, name);
     if (result) return result;
 
@@ -1596,6 +1609,7 @@ static Class getClass_impl(const char *name)
     // In that case, we put the class from the main executable in
     // gdb_objc_realized_classes and want to check that before considering any
     // newly loaded shared cache binaries.
+    // 从预缓存池中根据name查找对应的类
     return getPreoptimizedClass(name);
 }
 
@@ -1626,6 +1640,7 @@ static Class getClassExceptSomeSwift(const char *name)
 **********************************************************************/
 static void addNamedClass(Class cls, const char *name, Class replacing = nil)
 {
+    // 最终都调用NXMapInsert按照name:Class添加到densemap中
     runtimeLock.assertLocked();
     Class old;
     if ((old = getClassExceptSomeSwift(name))  &&  old != replacing) {
@@ -1791,7 +1806,7 @@ static void addRemappedClass(Class oldcls, Class newcls)
         _objc_inform("FUTURE: using %p instead of %p for %s", 
                      (void*)newcls, (void*)oldcls, oldcls->nameForLogging());
     }
-
+    // 将oldcls作为key，newcls作为vaue，添加到densemap中
     auto result = remappedClasses(YES)->insert({ oldcls, newcls });
 #if DEBUG
     if (!std::get<1>(result)) {
@@ -2210,7 +2225,8 @@ static NXMapTable *protocols(void)
 static NEVER_INLINE Protocol *getProtocol(const char *name)
 {
     runtimeLock.assertLocked();
-
+    // protocols 是一个maptable，name:protocol存储
+    
     // Try name as-is.
     Protocol *result = (Protocol *)NXMapGet(protocols(), name);
     if (result) return result;
@@ -2746,7 +2762,7 @@ static bool
 missingWeakSuperclass(Class cls)
 {
     ASSERT(!cls->isRealized());
-
+    //
     if (!cls->superclass) {
         // superclass nil. This is normal for root classes only.
         return (!(cls->data()->flags & RO_ROOT));
@@ -3064,6 +3080,8 @@ bool mustReadClasses(header_info *hi, bool hasDyldRoots)
 **********************************************************************/
 Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized)
 {
+    // 读取一个被编译器编写的类和元类到内存中
+    // 获取类的mangledName
     const char *mangledName = cls->mangledName();
     
     if (missingWeakSuperclass(cls)) {
@@ -3092,7 +3110,7 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized)
                         "because the real class is too big.", 
                         cls->nameForLogging());
         }
-        
+        // 进行数据的交换
         class_rw_t *rw = newCls->data();
         const class_ro_t *old_ro = rw->ro;
         memcpy(newCls, cls, sizeof(objc_class));
@@ -3107,6 +3125,7 @@ Class readClass(Class cls, bool headerIsBundle, bool headerIsPreoptimized)
         cls = newCls;
     }
     
+    // 将类添加到map表中，同时添加元类到set中
     if (headerIsPreoptimized  &&  !replacing) {
         // class list built in shared cache
         // fixme strict assert doesn't work because of duplicates
@@ -3139,7 +3158,7 @@ readProtocol(protocol_t *newproto, Class protocol_class,
     // This is not enough to make protocols in unloaded bundles safe, 
     // but it does prevent crashes when looking up unrelated protocols.
     auto insertFn = headerIsBundle ? NXMapKeyCopyingInsert : NXMapInsert;
-
+    // 如果有一个同名的老的protocol了
     protocol_t *oldproto = (protocol_t *)getProtocol(newproto->mangledName);
 
     if (oldproto) {
@@ -3262,7 +3281,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
     hIndex = 0;         \
     hIndex < hCount && (hi = hList[hIndex]); \
     hIndex++
-
+    // doneOnce静态变量保证执行一次
     if (!doneOnce) {
         doneOnce = YES;
         launchTime = YES;
@@ -3337,15 +3356,17 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 
         ts.log("IMAGE TIMES: first time tasks");
     }
-// runtime-analysize :3.3 修复@selector的引用
+// runtime-analysize :3.3 修复@selector的引用指向
     // Fix up @selector references
     static size_t UnfixedSelectors;
     {
         mutex_locker_t lock(selLock);
         for (EACH_HEADER) {
+            // 遍历每一个header_info
             if (hi->hasPreoptimizedSelectors()) continue;
 
             bool isBundle = hi->isBundle();
+            // 从__objc_selrefs段读取出sels
             SEL *sels = _getObjc2SelectorRefs(hi, &count);
             UnfixedSelectors += count;
             for (i = 0; i < count; i++) {
@@ -3366,11 +3387,12 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 // readClass内部调用addRemappedClass创建新类，创建完成后调用addNamedClass将类添加到NXMapTable，addClassTableEntry添加类表入口
     
     for (EACH_HEADER) {
+        // 遍历每一个header_info
         if (! mustReadClasses(hi, hasDyldRoots)) {
             // Image is sufficiently optimized that we need not call readClass()
             continue;
         }
-
+        // 从__objc_classlist段读取出classlist
         classref_t const *classlist = _getObjc2ClassList(hi, &count);
 
         bool headerIsBundle = hi->isBundle();
@@ -3378,6 +3400,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 
         for (i = 0; i < count; i++) {
             Class cls = (Class)classlist[i];
+            // 读取类到内存中
             Class newCls = readClass(cls, headerIsBundle, headerIsPreoptimized);
 
             if (newCls != cls  &&  newCls) {
@@ -3402,6 +3425,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
     // 遍历header list，从每个header的__objc_classrefs段获取类列表，遍历类列表，调用remapClassRef
     if (!noClassesRemapped()) {
         for (EACH_HEADER) {
+            // 从__objc_classrefs段获取classrefs
             Class *classrefs = _getObjc2ClassRefs(hi, &count);
             for (i = 0; i < count; i++) {
                 remapClassRef(&classrefs[i]);
@@ -3461,9 +3485,10 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
         }
 
         bool isBundle = hi->isBundle();
-
+        // 从__objc_protolist段获取协议列表
         protocol_t * const *protolist = _getObjc2ProtocolList(hi, &count);
         for (i = 0; i < count; i++) {
+            // 读取每个protocol到内存中，内部判断逻辑还挺复杂
             readProtocol(protolist[i], cls, protocol_map, 
                          isPreoptimized, isBundle);
         }
@@ -7950,7 +7975,9 @@ Class class_setSuperclass(Class cls, Class newSuper)
 
 void runtime_init(void)
 {
+    // 初始化未挂载的category的densemap
     objc::unattachedCategories.init(32);
+    //初始化已经加载的类的denseset
     objc::allocatedClasses.init();
 }
 

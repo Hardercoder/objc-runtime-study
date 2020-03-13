@@ -130,6 +130,7 @@ using namespace objc;
 void
 _objc_associations_init()
 {
+    // 调用AssociationsManager的init方法完成初始化
     AssociationsManager::init();
 }
 

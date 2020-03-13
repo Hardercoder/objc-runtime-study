@@ -347,6 +347,7 @@ void call_load_methods(void)
     if (loading) return;
     loading = YES;
 
+    // 创建一个autoreleasepool自动释放池。@autoreleasepool{}底部也是调用了objc_autoreleasePoolPush，objc_autoreleasePoolPop
     void *pool = objc_autoreleasePoolPush();
 
     do {

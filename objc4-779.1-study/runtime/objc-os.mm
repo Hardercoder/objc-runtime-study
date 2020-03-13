@@ -222,18 +222,21 @@ bool bad_magic(const headerType *mhdr)
 static header_info * addHeader(const headerType *mhdr, const char *path, int &totalClasses, int &unoptimizedTotalClasses)
 {
     header_info *hi;
-
+    // 判断mhdr的magic字段，如果不合法，直接返回NULL
     if (bad_magic(mhdr)) return NULL;
 
     bool inSharedCache = false;
 
     // Look for hinfo from the dyld shared cache.
+    // 通过mhdr，在dyld的缓存池里查看是否已经缓存header_info
     hi = preoptimizedHinfoForHeader(mhdr);
     if (hi) {
+        // 在dyld的共享缓存里面找到了header_info
         // Found an hinfo in the dyld shared cache.
 
         // Weed out duplicates.
         if (hi->isLoaded()) {
+            // 如果已经加载完，直接返回NULL，防止重复加载
             return NULL;
         }
 
@@ -253,6 +256,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
 #if DEBUG
         // Verify image_info
         size_t info_size = 0;
+        // 验证header_info中的__DATA,__DATA_CONST,__DATA_DIRTY段落的size,并获取image_info
         const objc_image_info *image_info = _getObjcImageInfo(mhdr,&info_size);
         ASSERT(image_info == hi->info());
 #endif
@@ -260,19 +264,22 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
     else 
     {
         // Didn't find an hinfo in the dyld shared cache.
-
+        // 未在dyld的共享缓存里面找到header_info
         // Locate the __OBJC segment
         size_t info_size = 0;
         unsigned long seg_size;
+        // 验证header_info中的__DATA,__DATA_CONST,__DATA_DIRTY段落的size,并获取image_info
         const objc_image_info *image_info = _getObjcImageInfo(mhdr,&info_size);
+        // 获取段数据
         const uint8_t *objc_segment = getsegmentdata(mhdr,SEG_OBJC,&seg_size);
         if (!objc_segment  &&  !image_info) return NULL;
 
+        // 给header_info分配内存
         // Allocate a header_info entry.
         // Note we also allocate space for a single header_info_rw in the
         // rw_data[] inside header_info.
         hi = (header_info *)calloc(sizeof(header_info) + sizeof(header_info_rw), 1);
-
+        // 设置header_info中header部分的数据
         // Set up the new header_info entry.
         hi->setmhdr(mhdr);
 #if !__OBJC2__
@@ -280,6 +287,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
         hi->mod_count = 0;
         hi->mod_ptr = _getObjcModules(hi, &hi->mod_count);
 #endif
+        // 填充header_info中的info字段
         // Install a placeholder image_info if absent to simplify code elsewhere
         static const objc_image_info emptyInfo = {0, 0};
         hi->setinfo(image_info ?: &emptyInfo);
@@ -290,6 +298,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
 
 #if __OBJC2__
     {
+        // 从__objc_classlist段获取类的数量，计算totalClasses和unoptimizedTotalClasses数量
         size_t count = 0;
         if (_getObjc2ClassList(hi, &count)) {
             totalClasses += (int)count;
@@ -382,6 +391,7 @@ static bool shouldRejectGCApp(const header_info *hi)
 **********************************************************************/
 static bool shouldRejectGCImage(const headerType *mhdr)
 {
+    // 如果这个image需要GC，先悬挂起来
     ASSERT(mhdr->filetype != MH_EXECUTE);
 
     objc_image_info *image_info;
@@ -473,7 +483,6 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
         _objc_inform("IMAGES: processing %u newly-mapped images...\n", mhCount);
     }
 
-
     // Find all images with Objective-C metadata.
     hCount = 0;
 // runtime-analysize :3.1 查找所有oc metadata，倒序遍历mach_header list，顺序添加到header_info list，这一步还统计了所有的sel的count
@@ -484,6 +493,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     {
         uint32_t i = mhCount;
         while (i--) {
+            // 倒序遍历mhdrs
             const headerType *mhdr = (const headerType *)mhdrs[i];
 
             auto hi = addHeader(mhdr, mhPaths[i], totalClasses, unoptimizedTotalClasses);
@@ -493,11 +503,16 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
             }
             
             if (mhdr->filetype == MH_EXECUTE) {
+                // 基于主可执行文件
                 // Size some data structures based on main executable's size
 #if __OBJC2__
+                //
                 size_t count;
+                // 获取__objc_selrefs段的count
                 _getObjc2SelectorRefs(hi, &count);
                 selrefCount += count;
+                
+                // 获取__objc_msgrefs段的count
                 _getObjc2MessageRefs(hi, &count);
                 selrefCount += count;
 #else
@@ -515,7 +530,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
                 }
 #endif
             }
-            
+            // 将header_info正序添加到hList
             hList[hCount++] = hi;
             
             if (PrintImages) {
@@ -537,8 +552,11 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     // (The executable may not be present in this infoList if the 
     // executable does not contain Objective-C code but Objective-C 
     // is dynamically loaded later.
+    // firstTime是一个static，能保证以下代码只执行一次
     if (firstTime) {
+        // 初始化namedSelectors，它是一个denseset，并且添加了.cxx_construct和.cxx_destruct
         sel_init(selrefCount);
+        // 初始化自动释放池，weak表和引用表，关联对象。所需要的数据结构
         arr_init();
 
 #if SUPPORT_GC_COMPAT
@@ -598,7 +616,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     }
 
     firstTime = NO;
-// runtime-analysize :3.3 通过函数地址调用我们自己添加的load_images的回调函数func(mdhrs[i])
+// runtime-analysize :3.3 通过函数地址调用我们自己添加的load_images的回调函数func(mdhrs[i])，主要给swift使用的
     // Call image load funcs after everything is set up.
     for (auto func : loadImageFuncs) {
         for (uint32_t i = 0; i < mhCount; i++) {
@@ -659,6 +677,7 @@ static void static_init()
 {
     size_t count;
     auto inits = getLibobjcInitializers(&_mh_dylib_header, &count);
+    // 遍历，调用c++的静态构造函数
     for (size_t i = 0; i < count; i++) {
         inits[i]();
     }
@@ -914,7 +933,7 @@ void _objc_atfork_child()
 * Bootstrap initialization. Registers our image notifier with dyld.
 * Called by libSystem BEFORE library initialization time
 **********************************************************************/
-
+// 启动初始化，这个会被libSystem在library初始化之前调用
 void _objc_init(void)
 {
     static bool initialized = false;
@@ -934,7 +953,7 @@ void _objc_init(void)
     exception_init();
     // 没搞太懂，貌似是来记录可重启的task的ranges
     cache_init();
-    // 这个跟高深，libobjc的一些处理，主要用于macos上，iOS上貌似没啥用
+    // 这个很高深，libobjc的一些处理，主要用于macos上，iOS上貌似没啥用
     _imp_implementationWithBlock_init();
     // 注册镜像的map，加载和卸载处理,注册的时候就会用已经加载的一部分镜像去调用map_images
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
