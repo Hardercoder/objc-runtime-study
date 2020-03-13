@@ -33,6 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)classMethod0;
 + (void)classMethod1;
 
++ (instancetype)myobj;
 @end
 
 @interface TestObj1 : TestObj {

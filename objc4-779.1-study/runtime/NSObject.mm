@@ -237,6 +237,9 @@ BOOL objc_should_deallocate(id object) {
 id
 objc_retain_autorelease(id obj)
 {
+//    const char *prestr = prev == nil ? "nil" : (prev->isTaggedPointer() ? "taggedpointer" : class_getName(prev->ISA()));
+    const char *str = obj == nil ? "nil" : (obj->isTaggedPointer() ? "taggedpointer" : class_getName(obj->ISA()));
+    printf("objc-arc-step %s\t%s\n", str, __func__);
     return objc_autorelease(objc_retain(obj));
 }
 
@@ -245,9 +248,14 @@ void
 objc_storeStrong(id *location, id obj)
 {
     id prev = *location;
+    const char *prestr = prev == nil ? "nil" : (prev->isTaggedPointer() ? "taggedpointer" : class_getName(prev->ISA()));
+    const char *str = obj == nil ? "nil" : (obj->isTaggedPointer() ? "taggedpointer" : class_getName(obj->ISA()));
+    printf("objc-arc-step %s %s\t%s\n",prestr, str, __func__);
+    
     if (obj == prev) {
         return;
     }
+    
     objc_retain(obj);
     *location = obj;
     objc_release(prev);
@@ -1604,6 +1612,8 @@ __attribute__((aligned(16), flatten, noinline))
 id 
 objc_retain(id obj)
 {
+    const char *str = obj == nil ? "nil" : (obj->isTaggedPointer() ? "taggedpointer" : class_getName(obj->ISA()));
+    printf("objc-arc-step %s\t%s\n", str,  __func__);
     if (!obj) return obj;
     if (obj->isTaggedPointer()) return obj;
     return obj->retain();
@@ -1614,6 +1624,8 @@ __attribute__((aligned(16), flatten, noinline))
 void 
 objc_release(id obj)
 {
+    const char *str = obj == nil ? "nil" : (obj->isTaggedPointer() ? "taggedpointer" : class_getName(obj->ISA()));
+    printf("objc-arc-step %s\t%s\n", str,  __func__);
     if (!obj) return;
     if (obj->isTaggedPointer()) return;
     return obj->release();
@@ -1624,6 +1636,8 @@ __attribute__((aligned(16), flatten, noinline))
 id
 objc_autorelease(id obj)
 {
+    const char *str = obj == nil ? "nil" : (obj->isTaggedPointer() ? "taggedpointer" : class_getName(obj->ISA()));
+    printf("objc-arc-step %s\t%s\n", str,  __func__);
     if (!obj) return obj;
     if (obj->isTaggedPointer()) return obj;
     return obj->autorelease();

@@ -25,11 +25,11 @@ int main(int argc, const char * argv[]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             printf("调用[[TestObj alloc] init]\n");
             
-            TestObj *obj = [[TestObj alloc] init];
-            obj.catName = @"catName";
-            NSLog(@"%@",obj.catName);
-            __weak TestObj *weakObj = obj;
-            NSLog(@"%@",weakObj);
+            TestObj * s = [TestObj myobj];
+//            obj.catName = @"catName";
+//            NSLog(@"%@",obj.catName);
+//            __weak TestObj *weakObj = obj;
+//            NSLog(@"%@",weakObj);
         });
         
     

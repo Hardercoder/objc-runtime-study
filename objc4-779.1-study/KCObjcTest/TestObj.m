@@ -36,6 +36,9 @@
     NSLog(@"%s",__FUNCTION__);
 }
 
++ (instancetype)myobj {
+    return [[self alloc] init];
+}
 @end
 
 @implementation TestObj1
